@@ -4,6 +4,7 @@ import threading
 import os
 from google import genai
 from gtts import gTTS
+from flask import Flask, request, jsonify
 
 class GeminiAIApp:
     def __init__(self, root):
@@ -31,6 +32,56 @@ class GeminiAIApp:
         # Create and initialize the client AFTER creating widgets
         self.initialize_client()
         
+        # Start Flask server in a separate thread
+        self.start_flask_server()
+        
+    def start_flask_server(self):
+        """Start the Flask web server in a separate thread."""
+        self.flask_app = Flask(__name__)
+
+        @self.flask_app.route('/')
+        def home():
+            return """
+            <h1>Welcome to Gemini AI Web Interface</h1>
+            <p>Send a POST request to <code>/submit</code> with JSON data to interact with the AI.</p>
+            <p>Example JSON payload:</p>
+            <pre>
+            {
+                "input": "Your input text here"
+            }
+            </pre>
+            <hr>
+            <h2>Submit Input</h2>
+            <form action="/submit" method="post">
+                <textarea name="input" rows="4" cols="50" placeholder="Enter your input here"></textarea><br><br>
+                <input type="submit" value="Submit">
+            </form>
+            """
+
+        @self.flask_app.route('/submit', methods=['POST'])
+        def submit():
+            data = request.json if request.is_json else request.form
+            user_input = data.get('input', '')
+            if user_input:
+                self.root.after(0, self.process_web_input, user_input)
+                return jsonify({"status": "success", "message": "Input received"})
+            return jsonify({"status": "error", "message": "No input provided"}), 400
+
+        # Start the Flask server in a separate thread
+        self.flask_thread = threading.Thread(
+            target=self.flask_app.run,
+            kwargs={'host': '0.0.0.0', 'port': 5000},
+            daemon=True
+        )
+        self.flask_thread.start()
+        self.update_status("Flask server started on port 5000", "blue")
+    
+    def process_web_input(self, user_input):
+        """Process input received from the web interface."""
+        self.input_text.delete("1.0", tk.END)
+        self.input_text.insert(tk.END, user_input)
+        self.process_input()
+    
     def access_file(self, filename):
         """Reads the content of a file if it exists, otherwise returns an empty string."""
         if os.path.exists(filename):

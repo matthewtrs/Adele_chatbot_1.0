@@ -7,6 +7,7 @@ from gtts import gTTS
 import time
 from datetime import datetime
 from PIL import Image, ImageTk
+from flask import Flask, request, jsonify
 
 
 class GeminiChatApp:
@@ -19,7 +20,7 @@ class GeminiChatApp:
         
         
         # Variables
-        self.api_key = "x"  # Default API key
+        self.api_key = "AIzaSyAe6UbUZN1msgYnx7J9BtlrJsW8vWogFoY"  # Default API key
         self.rules_file = "rules.txt"
         self.rules_content = self.access_file(self.rules_file)
         self.client = None
@@ -39,9 +40,63 @@ class GeminiChatApp:
         
         # Create and initialize the client
         self.initialize_client()
+
+        self.start_flask_server()
         
         # Welcome message
         self.add_bot_message("Hello! How can I help you today?")
+
+    def start_flask_server(self):
+        """Start the Flask web server in a separate thread."""
+        self.flask_app = Flask(__name__)
+
+        @self.flask_app.route('/')
+        def home():
+            return """
+            <h1>Welcome to Gemini AI Web Interface</h1>
+            <p>Send a POST request to <code>/submit</code> with JSON data to interact with the AI.</p>
+            <p>Example JSON payload:</p>
+            <pre>
+            {
+                "input": "Your input text here"
+            }
+            </pre>
+            <hr>
+            <h2>Submit Input</h2>
+            <form action="/submit" method="post">
+                <textarea name="input" rows="4" cols="50" placeholder="Enter your input here"></textarea><br><br>
+                <input type="submit" value="Submit">
+            </form>
+            """
+
+        @self.flask_app.route('/submit', methods=['POST'])
+        def submit():
+            data = request.json if request.is_json else request.form
+            user_input = data.get('input', '')
+            if user_input:
+                self.root.after(0, self.process_web_input, user_input)
+                return jsonify({"status": "success", "message": "Input received"})
+            return jsonify({"status": "error", "message": "No input provided"}), 400
+
+        # Start the Flask server in a separate thread
+        self.flask_thread = threading.Thread(
+            target=self.flask_app.run,
+            kwargs={'host': '0.0.0.0', 'port': 5000},
+            daemon=True
+        )
+        self.flask_thread.start()
+        self.update_status("Flask server started on port 5000", "blue")
+
+    def update_status(self, message, color="black"):
+        """Update the status bar with a message and color."""
+        self.status_var.set(message)
+        self.status_bar.config(foreground=color)
+    
+    def process_web_input(self, user_input):
+        """Process input received from the web interface."""
+        self.input_text.delete("1.0", tk.END)
+        self.input_text.insert(tk.END, user_input)
+        self.process_input()   
         
     def access_file(self, filename):
         """Reads the content of a file if it exists, otherwise returns an empty string."""
@@ -107,15 +162,15 @@ class GeminiChatApp:
     def create_chat_display(self, parent):
         """Create the chat display area with a canvas and frame for messages."""
         # Create a frame with chat title
-        chat_frame = ttk.LabelFrame(parent, text="Conversation", padding=0)
-        chat_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        chat_frame = ttk.LabelFrame(parent, text="Adele", padding=0)
+        chat_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 0))
         
         # Create a canvas with scrollbar for the chat history
         self.chat_canvas = tk.Canvas(chat_frame, highlightthickness=0,background="#736488")
         self.chat_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Scrollbar for the canvas
-        chat_scrollbar = ttk.Scrollbar(chat_frame, orient=tk.VERTICAL, command=self.chat_canvas.yview,)
+        chat_scrollbar = ttk.Scrollbar(chat_frame, orient=tk.VERTICAL, command=self.chat_canvas.yview)
         chat_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.chat_canvas.configure(yscrollcommand=chat_scrollbar.set)
         
@@ -151,7 +206,7 @@ class GeminiChatApp:
         button_frame.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Send button
-        self.submit_button = ttk.Button(button_frame, text="Send", command=self.process_input)
+        self.submit_button = ttk.Button(button_frame, text="⬆", command=self.process_input)
         self.submit_button.pack(fill=tk.X, pady=(0, 5))
         
         # Speak button
@@ -164,7 +219,7 @@ class GeminiChatApp:
         
         style = ttk.Style()
         style.configure("TFrame", background="#736488")
-        style.configure("TLabelframe", background="#312F32")
+        style.configure("TLabelframe", background="#736488")
         style.configure("TLabelframe.Label", background="#736488", font=('Arial', 10, 'bold'))
         style.configure("TButton", background="#736488", foreground="black", padding=1)
         
@@ -328,7 +383,7 @@ class GeminiChatApp:
         # Bot message bubble with border
         bubble_frame = tk.Frame(message_frame, bg="#FFCCCC", padx=10, pady=5, 
                                 highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
-        bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=2, anchor='w')
+        bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
 
         # Create message label with monospaced font
         msg_label = tk.Label(bubble_frame, text=message, font=("Noto Sans", 15), 
@@ -336,7 +391,7 @@ class GeminiChatApp:
         msg_label.pack()
 
         # Timestamp
-        ttk.Label(timestamp_frame, font=('Arial', 7), foreground='gray').pack(side=tk.BOTTOM)
+        ttk.Label(timestamp_frame, font=('Arial', 7), foreground='black',background="#736488").pack(side=tk.BOTTOM)
 
         # Speak button
         action_frame = ttk.Frame(message_frame)
@@ -382,11 +437,15 @@ class GeminiChatApp:
         typing_frame.pack(fill=tk.X, pady=5)
         
         timestamp_frame = ttk.Frame(typing_frame)
-        timestamp_frame.pack(side=tk.LEFT, padx=(5, 0))
+        timestamp_frame.pack(side=tk.LEFT, padx=(15, 5))
         ttk.Label(timestamp_frame, image=self.bot_icon, background="#736488").pack(side=tk.TOP)
-        
-        typing_label = ttk.Label(typing_frame, text="Let me think...", font=('Arial', 9, 'italic'))
-        typing_label.pack(side=tk.LEFT, padx=10)
+
+        typing_label = tk.Frame(typing_frame, bg="#FFCCCC",padx=10, pady=5, 
+                                highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
+        typing_label.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
+                
+        #typing_label = ttk.Label(typing_frame, text="Let me think...", font=('Arial', 9, 'italic'))
+        #typing_label.pack(side=tk.LEFT, padx=5)
         
         # Update the display
         self.messages_frame.update_idletasks()
