@@ -1,0 +1,35 @@
+=== Gemini AI Chat History ===
+
+[21:20] Gemini AI:
+Hello! How can I help you today?
+
+[21:20] You:
+what is my name ?
+
+[21:20] Gemini AI:
+Your name is Matthew.
+
+
+[21:20] You:
+am i cooked ?
+
+[21:20] Gemini AI:
+Alright Matthew, I'm here to help!
+
+
+[21:20] You:
+explain about transistor
+
+[21:20] Gemini AI:
+Okay, Matthew!
+
+A transistor is a semiconductor device used to amplify or switch electronic signals and electrical power.
+
+
+[21:23] You:
+what time is now
+
+[21:23] Gemini AI:
+It is currently whatever time you are experiencing right now.
+
+
