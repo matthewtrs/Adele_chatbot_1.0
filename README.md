@@ -1,6 +1,9 @@
-﻿# Adele_chatbot_1.0
-Simpe LLM Wrapper with double rendered in WebFlask and Tkinter
-Featuring Bot Character : Ejya the Hvit Aska as Adele
+A simple LLM wrapper with dual rendering in Flask (Web Interface) and Tkinter (Desktop GUI).
 
-![image](https://github.com/user-attachments/assets/29b6c8af-1b72-40c0-a4a2-d5c8be68a6a6)
+Features:
+Bot Character: Ejya the Hvit Aska as Adele
+![image](https://github.com/user-attachments/assets/83323803-89b2-4504-aad5-ec4df11b8f06)
 
+
+License & Copyright
+This project is inspired by Arknights and Hypergryph. All rights belong to their respective owners.
