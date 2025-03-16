@@ -2,4 +2,5 @@
 Simpe LLM Wrapper with double rendered in WebFlask and Tkinter
 Featuring Bot Character : Ejya the Hvit Aska as Adele
 
-![Uploading image.png…]()
+![image](https://github.com/user-attachments/assets/29b6c8af-1b72-40c0-a4a2-d5c8be68a6a6)
+
