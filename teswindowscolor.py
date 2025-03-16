@@ -14,11 +14,11 @@ def dark_title_bar(window):
     value = 2
     value = ct.c_int(value)
     set_window_attribute(hwnd, 20, ct.byref(value),
-                         4)
+                         5)
 
 root = tk.Tk()
 root.title("Crystaly Ball")
 root.geometry("1400x900")
-root.configure(background="#222246")
+root.configure(background="#000000")
 dark_title_bar(root)
 root.mainloop()

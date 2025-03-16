@@ -21,14 +21,14 @@ class GeminiChatApp:
         
         # Variables
         self.api_key = "AIzaSyAe6UbUZN1msgYnx7J9BtlrJsW8vWogFoY"  # Default API key
-        self.rules_file = "rules.txt"
+        self.rules_file = "C:\\Altair\\codes\\python\\tesapi\\rules.txt"
         self.rules_content = self.access_file(self.rules_file)
         self.client = None
         self.language = tk.StringVar(value="en")
         self.status_var = tk.StringVar()
         self.chat_history = []  # To store chat history
         
-        self.bot_icon = Image.open("output-onlinepngtools.png")  # Replace with the path to your PNG file
+        self.bot_icon = Image.open("C:\\Altair\\codes\\python\\tesapi\\output-onlinepngtools.png")  # Replace with the path to your PNG file
         self.bot_icon = self.bot_icon.resize((70, 70), Image.ANTIALIAS)  # Resize the image if necessary
         self.bot_icon = ImageTk.PhotoImage(self.bot_icon)
         
@@ -48,26 +48,170 @@ class GeminiChatApp:
 
     def start_flask_server(self):
         """Start the Flask web server in a separate thread."""
+        from flask import Flask, request, jsonify, render_template_string
         self.flask_app = Flask(__name__)
 
         @self.flask_app.route('/')
         def home():
-            return """
-            <h1>Welcome to Gemini AI Web Interface</h1>
-            <p>Send a POST request to <code>/submit</code> with JSON data to interact with the AI.</p>
-            <p>Example JSON payload:</p>
-            <pre>
-            {
-                "input": "Your input text here"
-            }
-            </pre>
-            <hr>
-            <h2>Submit Input</h2>
-            <form action="/submit" method="post">
-                <textarea name="input" rows="4" cols="50" placeholder="Enter your input here"></textarea><br><br>
-                <input type="submit" value="Submit">
-            </form>
-            """
+            return render_template_string("""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Gemini AI Web Interface</title>
+                <style>
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: #f5f5f7;
+                        color: #333;
+                    }
+                    h1, h2 {
+                        color: #2c3e50;
+                    }
+                    .container {
+                        background-color: white;
+                        border-radius: 10px;
+                        padding: 25px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .card {
+                        border: 1px solid #e1e4e8;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        background-color: #f8f9fa;
+                    }
+                    pre {
+                        background-color: #f1f1f1;
+                        padding: 10px;
+                        border-radius: 5px;
+                        overflow-x: auto;
+                    }
+                    textarea {
+                        width: 100%;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 10px;
+                        font-family: inherit;
+                    }
+                    button {
+                        background-color: #4285f4;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        transition: background-color 0.3s;
+                    }
+                    button:hover {
+                        background-color: #3367d6;
+                    }
+                    .status {
+                        padding: 10px;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                        display: none;
+                    }
+                    .success {
+                        background-color: #d4edda;
+                        color: #155724;
+                    }
+                    .error {
+                        background-color: #f8d7da;
+                        color: #721c24;
+                    }
+                    .loading {
+                        display: inline-block;
+                        width: 20px;
+                        height: 20px;
+                        border: 3px solid rgba(0, 0, 0, 0.3);
+                        border-radius: 50%;
+                        border-top-color: #4285f4;
+                        animation: spin 1s ease-in-out infinite;
+                        margin-right: 10px;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Gemini AI Web Interface</h1>
+                    <p>Interact with the Gemini AI model through this web interface.</p>
+                    
+                    <div class="card">
+                        <h2>API Documentation</h2>
+                        <p>Send a POST request to <code>/submit</code> with JSON data to interact with the AI.</p>
+                        <p>Example JSON payload:</p>
+                        <pre>{
+        "input": "Your input text here"
+    }</pre>
+                    </div>
+                    
+                    <h2>Submit Input</h2>
+                    <form id="aiForm">
+                        <textarea id="userInput" rows="5" placeholder="Enter your question or prompt here..."></textarea>
+                        <br><br>
+                        <button type="submit" id="submitBtn">Submit</button>
+                    </form>
+                    
+                    <div id="statusMessage" class="status"></div>
+                </div>
+                
+                <script>
+                    document.getElementById('aiForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const userInput = document.getElementById('userInput').value.trim();
+                        const statusMessage = document.getElementById('statusMessage');
+                        const submitBtn = document.getElementById('submitBtn');
+                        
+                        if (!userInput) {
+                            statusMessage.textContent = 'Please enter some input.';
+                            statusMessage.className = 'status error';
+                            statusMessage.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Show loading state
+                        submitBtn.innerHTML = '<span class="loading"></span>Processing...';
+                        submitBtn.disabled = true;
+                        
+                        fetch('/submit', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ input: userInput })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            statusMessage.textContent = data.message;
+                            statusMessage.className = 'status ' + (data.status === 'success' ? 'success' : 'error');
+                            statusMessage.style.display = 'block';
+                        })
+                        .catch(error => {
+                            statusMessage.textContent = 'An error occurred while processing your request.';
+                            statusMessage.className = 'status error';
+                            statusMessage.style.display = 'block';
+                            console.error('Error:', error);
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            submitBtn.innerHTML = 'Submit';
+                            submitBtn.disabled = false;
+                        });
+                    });
+                </script>
+            </body>
+            </html>
+            """)
 
         @self.flask_app.route('/submit', methods=['POST'])
         def submit():
@@ -75,13 +219,18 @@ class GeminiChatApp:
             user_input = data.get('input', '')
             if user_input:
                 self.root.after(0, self.process_web_input, user_input)
-                return jsonify({"status": "success", "message": "Input received"})
+                return jsonify({"status": "success", "message": "Input received and processing started"})
             return jsonify({"status": "error", "message": "No input provided"}), 400
+
+        # Add a healthcheck endpoint
+        @self.flask_app.route('/health')
+        def health_check():
+            return jsonify({"status": "healthy", "service": "Gemini AI Web Interface"})
 
         # Start the Flask server in a separate thread
         self.flask_thread = threading.Thread(
             target=self.flask_app.run,
-            kwargs={'host': '0.0.0.0', 'port': 5000},
+            kwargs={'host': '0.0.0.0', 'port': 5000, 'debug': False},
             daemon=True
         )
         self.flask_thread.start()
