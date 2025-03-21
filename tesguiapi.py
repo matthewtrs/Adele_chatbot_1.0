@@ -295,10 +295,10 @@ class GeminiAIApp:
         try:
             language = self.language.get()
             myobj = gTTS(text=text, lang=language, slow=False)
-            myobj.save("response.mp3")
+            myobj.save("response.wav")
             
             # Play the audio
-            os.system("start response.mp3")
+            os.system("start response.wav")
             
             self.root.after(0, self.update_status, "Speech playing", "green")
             self.root.after(0, lambda: self.speak_button.config(state="normal"))

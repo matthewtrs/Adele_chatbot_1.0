@@ -11,6 +11,17 @@ from flask import Flask, request, jsonify
 from flask_sock import Sock
 import json
 import ctypes as ct
+import playsound
+import aigenerator
+
+
+from flask import Flask, send_from_directory
+
+app = Flask(__name__, static_folder="static")
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory("static", filename)
 
 
 class GeminiChatApp:
@@ -22,17 +33,46 @@ class GeminiChatApp:
         self.root.geometry("800x600")
         self.root.minsize(600, 400)
         
+        self.personalities = {
+        "default": {
+            "name": "Adele",
+            "rules_file": "C:\\Altair\\codes\\python\\tesapi\\rules.txt",
+            "icon_path": "C:\\Altair\\codes\\python\\tesapi\\output-onlinepngtools.png",
+            "bubble_color": "#E29AB2",
+            "web_icon_url": "https://i.imgur.com/7zL5vug.png"
+        },
+        "reed": {
+            "name": "Reed",
+            "rules_file": "C:\\Altair\\codes\\python\\tesapi\\rules1.txt",
+            "icon_path": "C:\\Altair\\codes\\python\\tesapi\\icon\\arknights-reed.png",
+            "bubble_color": "#EBC072",
+            "web_icon_url": "https://i.imgur.com/bobicon.png"
+        },
+        "wis'adel": {
+            "name": "Wis",
+            "rules_file": "C:\\Altair\\codes\\python\\tesapi\\rules2.txt",
+            "icon_path": r"C:\Altair\codes\python\tesapi\icon\output-onlinepngtools1.png",
+            "bubble_color": "#B43231",
+            "web_icon_url": "https://i.imgur.com/aliceicon.png"
+        }
+    }
+        
+        self.current_personality = "default"
         
         # Variables
         self.api_key = "AIzaSyAe6UbUZN1msgYnx7J9BtlrJsW8vWogFoY"  # Default API key
-        self.rules_file = "C:\\Altair\\codes\\python\\tesapi\\rules.txt"
+        self.rules_file = self.personalities["wis'adel"]["rules_file"]
         self.rules_content = self.access_file(self.rules_file)
         self.client = None
         self.language = tk.StringVar(value="en")
         self.status_var = tk.StringVar()
         self.chat_history = []  # To store chat history
+        self.identity = "default"
         
-        self.bot_icon = Image.open("C:\\Altair\\codes\\python\\tesapi\\output-onlinepngtools.png")  # Replace with the path to your PNG file
+
+
+        
+        self.bot_icon = Image.open(self.personalities[self.identity]["icon_path"])
         self.bot_icon = self.bot_icon.resize((70, 70), Image.ANTIALIAS)  # Resize the image if necessary
         self.bot_icon = ImageTk.PhotoImage(self.bot_icon)
         
@@ -48,7 +88,10 @@ class GeminiChatApp:
         self.start_flask_server()
         
         # Welcome message
-        self.add_bot_message("Hello! How can I help you today?")
+        self.add_bot_message("Stand ready for my arrival, Worm.")
+
+        image_pathopening = "C:\\Altair\\codes\\python\\tesapi\\photo\\stand-ready-for-my-arrival-worm.jpg"
+        self.add_bot_image(image_pathopening)
 
 
 
@@ -131,9 +174,9 @@ class GeminiChatApp:
                         flex-direction: row;
                     }
                     .bot-icon {
-                        width: 40px;
-                        height: 40px;
-                        background-image: url('https://i.imgur.com/7zL5vug.png');
+                        width: 70px;
+                        height: 70px;
+                        background-image: url("/static/output-onlinepngtools1.png");
                         background-size: cover;
                         border-radius: 50%;
                         margin-right: 8px;
@@ -244,7 +287,7 @@ class GeminiChatApp:
                         <div class="message bot-message">
                             <div class="bot-icon"></div>
                             <div class="message-content bot-content">
-                                Hello! How can I help you today?
+                                Stand ready for my arrival, Worm.
                                 <div class="timestamp">Now</div>
                             </div>
                         </div>
@@ -454,6 +497,7 @@ class GeminiChatApp:
             kwargs={'host': '0.0.0.0', 'port': 5000, 'debug': False},
             daemon=True
         )
+        
         self.flask_thread.start()
         self.update_status("Flask server started on port 5000", "blue")
     # ... (rest of the code remains the same)
@@ -718,11 +762,16 @@ class GeminiChatApp:
         timestamp = datetime.now().strftime("%H:%M")
         ttk.Label(message_frame, text=timestamp, font=('Arial', 7), 
                 foreground='black', background="#736488").pack(side=tk.RIGHT, padx=(0, 5))
+        
+        #ttk.Label(message_frame, image=self.bot_icon, background="#000000").pack(side=tk.RIGHT, padx=10)
+        #ttk.Label(message_frame, text=timestamp, font=('Arial', 7), foreground='black', background="#736488").pack(side=tk.BOTTOM)
+
 
         # Message bubble frame
         bubble_frame = tk.Frame(message_frame, bg="#8bd450", padx=10, pady=5, 
                                 highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
         bubble_frame.pack(side=tk.RIGHT, padx=(50, 10))
+
 
         # Auto-width calculation
         max_width = 1000
@@ -765,7 +814,7 @@ class GeminiChatApp:
         ttk.Label(timestamp_frame, text=timestamp, font=('Arial', 7), foreground='black', background="#736488").pack(side=tk.BOTTOM)
 
         # Message bubble frame
-        bubble_frame = tk.Frame(message_frame, bg="#FFCCCC", padx=10, pady=5, 
+        bubble_frame = tk.Frame(message_frame, bg=self.personalities["wis'adel"]["bubble_color"], padx=10, pady=5, 
                                 highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
         bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
 
@@ -775,7 +824,7 @@ class GeminiChatApp:
 
         # Use tk.Text for selectable text (but styled like Label)
         msg_text = tk.Text(bubble_frame, font=("Noto Sans", 15), wrap="word", 
-                        bg="#FFCCCC", height=1, width=int(estimated_width / 7),
+                        bg=self.personalities["wis'adel"]["bubble_color"], height=1, width=int(estimated_width / 7),
                         borderwidth=0, highlightthickness=0, relief="flat")
         msg_text.insert("1.0", message)
         msg_text.config(state="disabled")  # Make it read-only
@@ -789,7 +838,7 @@ class GeminiChatApp:
 
         # Speak button
         action_frame = ttk.Frame(message_frame)
-        action_frame.pack(side=tk.RIGHT, anchor="ne")
+        action_frame.pack(side=tk.LEFT, anchor="w",padx=10)
 
         speak_btn = tk.Button(action_frame, text="🔊", width=2, 
                             command=lambda m=message: self.speak_message(m))
@@ -818,13 +867,13 @@ class GeminiChatApp:
             ttk.Label(timestamp_frame, text=timestamp, font=('Arial', 7), foreground='black', background="#736488").pack(side=tk.BOTTOM)
 
             # Image bubble frame (same as text bubble)
-            bubble_frame = tk.Frame(message_frame, bg="#FFCCCC", padx=10, pady=5, 
+            bubble_frame = tk.Frame(message_frame, bg=self.personalities["wis'adel"]["bubble_color"], padx=10, pady=5, 
                                     highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
             bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
 
             # Load and resize image
             img = Image.open(image_path)
-            img = img.resize((100, 100))  # Adjust size as needed
+            img = img.resize((200, 200))  # Adjust size as needed
             img = ImageTk.PhotoImage(img)
 
             # Create label for image inside bubble frame
@@ -847,11 +896,23 @@ class GeminiChatApp:
         """Process the user input and get a response from the Gemini AI."""
         # Get user input
         user_input = self.input_text.get("1.0", tk.END).strip()
+        print(self.identity)
         
+
         if not user_input:
             self.status_var.set("Please enter some input")
             return
         
+        if "reed" in user_input.lower():
+            
+            self.identity = "reed"
+            print(self.identity)
+
+        elif "wis'adel" in user_input.lower():  # Gunakan `elif` agar hanya satu yang dipilih
+
+            self.identity = "wis'adel"
+            print(self.identity)   
+             
         if "stop" in user_input.lower():
             self.status_var.set("End program command received")
             self.add_bot_message("Shutting down...")
@@ -883,6 +944,28 @@ class GeminiChatApp:
             self.input_text.delete("1.0", tk.END)
             return
         
+        if "generate" in user_input.lower():
+            self.add_user_message(user_input)
+            user_input = user_input.replace("generate", "").strip()
+            
+            image_path = "C:\\Altair\\codes\\python\\tesapi\\output.png"
+
+            def generate_and_display():
+                aigenerator.generate_and_save_image(user_input, image_path)
+                self.add_bot_image(image_path)
+                print("Image generated")
+
+            # Run the function in a new thread
+            thread = threading.Thread(target=generate_and_display)
+            thread.start()
+
+            # Clear input
+            self.input_text.delete("1.0", tk.END)
+            return
+            
+
+         
+
         # Add user message to chat
         self.add_user_message(user_input)
     
@@ -901,7 +984,7 @@ class GeminiChatApp:
         timestamp_frame.pack(side=tk.LEFT, padx=(15, 5))
         ttk.Label(timestamp_frame, image=self.bot_icon, background="#736488").pack(side=tk.TOP)
 
-        typing_label = tk.Frame(typing_frame, bg="#FFCCCC", padx=10, pady=5, 
+        typing_label = tk.Frame(typing_frame, bg=self.personalities["wis'adel"]["bubble_color"], padx=10, pady=5, 
                                 highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
         typing_label.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
         
@@ -924,7 +1007,12 @@ class GeminiChatApp:
             response = self.client.models.generate_content(
                 model="gemini-2.0-flash-lite", contents=self.rules_content + user_input
             )
+
+            # Automatic tts
+            threading.Thread(target=self.speak_message, args=(response.text,), daemon=True).start()
+            
             print(user_input)
+            
             
             # Destroy the "typing" indicator
             self.root.after(0, typing_frame.destroy)
@@ -933,7 +1021,9 @@ class GeminiChatApp:
             self.root.after(0, lambda: self.add_bot_message(response.text))
             self.root.after(0, lambda: self.status_var.set("Response received"))
             self.root.after(0, lambda: self.submit_button.config(state="normal"))
+            
             print(response.text)
+            
             
             # If this was called from the web interface, store the response
             if from_web:
@@ -973,21 +1063,23 @@ class GeminiChatApp:
                 return
         
         self.status_var.set("No bot messages to speak")
-    
+
     def text_to_speech(self, text):
-        """Convert text to speech in a separate thread."""
+        """Convert text to speech and play directly."""
         try:
             language = self.language.get()
             myobj = gTTS(text=text, lang=language, slow=False)
-            myobj.save("response.mp3")
+            filename = "response.mp3"
+            myobj.save(filename)
             
             # Play the audio
-            os.system("start response.mp3")
-            
+            playsound.playsound(filename)
+
             self.root.after(0, lambda: self.status_var.set("Speech playing"))
-            
+
         except Exception as e:
             self.root.after(0, lambda: self.status_var.set(f"Error in text-to-speech: {str(e)}"))
+
     
     def clear_chat(self):
         """Clear the chat history."""
