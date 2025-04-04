@@ -1,0 +1,2 @@
+Error: 'GeminiChatApp' object has no attribute 'cache_file'
+Error: 'GeminiChatApp' object has no attribute 'cache_file'

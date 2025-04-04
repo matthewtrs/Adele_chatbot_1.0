@@ -1,27 +1,58 @@
 import requests
 import base64
+import time
 
-def generate_and_save_image(prompt, output_path="output.png"):
+# Default global settings
+LORA_WEIGHT = 1.0
+CURRENT_CHECKPOINT = "hassakuXLIllustrious_v2.safetensors"
+
+def set_checkpoint(checkpoint_name):
+    """Set the checkpoint model in the Stable Diffusion API."""
+    global CURRENT_CHECKPOINT
+    
+    url = "http://127.0.0.1:7860/sdapi/v1/options"
+    payload = {"sd_model_checkpoint": checkpoint_name}
+    
+    response = requests.post(url, json=payload)
+    
+    if response.status_code == 200:
+        CURRENT_CHECKPOINT = checkpoint_name
+        print(f"Checkpoint set to: {checkpoint_name}")
+        # Give the system a moment to load the checkpoint
+        time.sleep(3)
+        return True
+    else:
+        print(f"Error setting checkpoint: {response.text}")
+        return False
+
+def set_lora_weight(weight):
+    """Allows setting the LoRA weight globally."""
+    global LORA_WEIGHT
+    LORA_WEIGHT = weight
+
+def generate_and_save_image(prompt, output_path="output.png", lora_models=None):
     """
-    Generates an image using the Stable Diffusion API and saves it to a file.
-    
-    Parameters:
-        prompt (str): The text prompt for image generation.
-        output_path (str): The file path where the image will be saved.
-    
-    Returns:
-        bool: True if the image was saved successfully, False otherwise.
+    Generates an image using Stable Diffusion API with optional multiple LoRA models.
+    Uses the currently loaded checkpoint.
     """
     url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
 
+    # Apply multiple LoRAs if specified
+    if lora_models:
+        for lora_name in lora_models:
+            prompt = f"<lora:{lora_name}:{LORA_WEIGHT}> " + prompt
+    
+    addon = "masterpiece, best quality, theresa_\(arknights\)"
+
     payload = {
-        "prompt": prompt,
+        "prompt": addon + prompt,
         "negative_prompt": "nsfw, nudity, explicit, gore, violence, low quality, worst quality",
         "steps": 20,
         "cfg_scale": 7,
         "width": 512,
         "height": 512,
-        "sampler_name": "Euler a"
+        "sampler_name": "Euler a",
+        "denoising_strength": 0.7
     }
 
     response = requests.post(url, json=payload)
@@ -45,6 +76,24 @@ def generate_and_save_image(prompt, output_path="output.png"):
         print(f"Error: {response.text}")
         return False
 
-# Example usage
+# Example usage with improved workflow
 if __name__ == "__main__":
-    generate_and_save_image("A futuristic city at sunset", "generated_image.png")
+    # Set checkpoint once at the beginning
+    set_checkpoint("hassakuXLIllustrious_v2.safetensors")
+    
+    # Set global LoRA weight
+    set_lora_weight(0.8)
+
+    # Generate multiple images without needing to set checkpoint each time
+    generate_and_save_image(
+        prompt="eating cookies",
+        output_path="city_sunset.png",
+        lora_models=["theresa_arknights_v2.0_for_IL-000012"]
+    )
+    
+    # Generate another image using the same checkpoint
+    generate_and_save_image(
+        prompt="in crystal cave with glowing minerals",
+        output_path="crystal_cave.png",
+        lora_models=["theresa_arknights_v2.0_for_IL-000012"]
+    )

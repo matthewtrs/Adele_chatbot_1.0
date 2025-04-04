@@ -7,13 +7,18 @@ from gtts import gTTS
 import time
 from datetime import datetime
 from PIL import Image, ImageTk
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_sock import Sock
 import json
 import ctypes as ct
 import playsound
 import aigenerator
+import shutil
 
+lora_models = [
+    ("theresa_arknights_v2.0_for_IL-000012")
+    #("LoraModel2.safetensors", 0.5)
+]
 
 from flask import Flask, send_from_directory
 
@@ -26,8 +31,11 @@ def static_files(filename):
 
 class GeminiChatApp:
     
+
+    
     
     def __init__(self, root):
+        """Initialize the Gemini Chat application."""
         self.root = root
         self.root.title("Adele-Bot")
         self.root.geometry("800x600")
@@ -37,14 +45,14 @@ class GeminiChatApp:
         "default": {
             "name": "Adele",
             "rules_file": "C:\\Altair\\codes\\python\\tesapi\\rules.txt",
-            "icon_path": "C:\\Altair\\codes\\python\\tesapi\\output-onlinepngtools.png",
+            "icon_path": r"C:\\Altair\\codes\\python\\tesapi\\output-onlinepngtools.png",
             "bubble_color": "#E29AB2",
             "web_icon_url": "https://i.imgur.com/7zL5vug.png"
         },
         "reed": {
             "name": "Reed",
             "rules_file": "C:\\Altair\\codes\\python\\tesapi\\rules1.txt",
-            "icon_path": "C:\\Altair\\codes\\python\\tesapi\\icon\\arknights-reed.png",
+            "icon_path": r"C:\\Altair\\codes\\python\\tesapi\\icon\\arknights-reed.png",
             "bubble_color": "#EBC072",
             "web_icon_url": "https://i.imgur.com/bobicon.png"
         },
@@ -57,24 +65,40 @@ class GeminiChatApp:
         }
     }
         
-        self.current_personality = "default"
+        
         
         # Variables
         self.api_key = "AIzaSyAe6UbUZN1msgYnx7J9BtlrJsW8vWogFoY"  # Default API key
-        self.rules_file = self.personalities["wis'adel"]["rules_file"]
+        self.identity = None  # Default personality
+        if self.identity not in self.personalities:
+            self.identity = "default"  # Fallback to default if invalid
+        self.bot_icon = self.personalities[self.identity]["icon_path"]
+        self.rules_file = self.personalities[self.identity]["rules_file"]
         self.rules_content = self.access_file(self.rules_file)
         self.client = None
         self.language = tk.StringVar(value="en")
         self.status_var = tk.StringVar()
         self.chat_history = []  # To store chat history
-        self.identity = "default"
+        
+        self.cache_file = "chatcache.txt"
+        # Clear the content of the cache file
+        with open(self.cache_file, 'w') as file:
+            file.write("Previous chat (Memory):")  # Clears and writes in one step
+        self.launchcounter = 0
+        
+        
+        
         
 
 
         
-        self.bot_icon = Image.open(self.personalities[self.identity]["icon_path"])
-        self.bot_icon = self.bot_icon.resize((70, 70), Image.ANTIALIAS)  # Resize the image if necessary
+        self.bot_icon = Image.open(r"C:\Altair\codes\python\tesapi\icon\output-onlinepngtools1.png")
+        self.bot_icon = self.bot_icon.resize((70, 70), Image.LANCZOS)  # Resize the image if necessary
         self.bot_icon = ImageTk.PhotoImage(self.bot_icon)
+       
+       
+        
+        
         
         # Create GUI components
         self.create_widgets()
@@ -90,7 +114,8 @@ class GeminiChatApp:
         # Welcome message
         self.add_bot_message("Stand ready for my arrival, Worm.")
 
-        image_pathopening = "C:\\Altair\\codes\\python\\tesapi\\photo\\stand-ready-for-my-arrival-worm.jpg"
+        image_pathopening = r"C:\\Altair\\codes\\python\\tesapi\\photo\\stand-ready-for-my-arrival-worm.jpg"
+    
         self.add_bot_image(image_pathopening)
 
 
@@ -110,366 +135,11 @@ class GeminiChatApp:
         
         @self.flask_app.route('/')
         def home():
-            return render_template_string(r"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Adele-Bot</title>
-                <style>
-                    body {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        background-color: #736488;
-                        color: #333;
-                        display: flex;
-                        flex-direction: column;
-                        height: 100vh;
-                    }
-                    .chat-container {
-                        flex: 1;
-                        max-width: 800px;
-                        width: 100%;
-                        margin: 0 auto;
-                        padding: 10px;
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-                        background-color: #736488;
-                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                    }
-                    .header {
-                        text-align: center;
-                        padding: 10px;
-                        background-color: #736488;
-                        color: white;
-                        margin-bottom: 10px;
-                    }
-                    .messages-area {
-                        flex: 1;
-                        overflow-y: auto;
-                        padding: 10px;
-                        background-color: #736488;
-                        margin-bottom: 10px;
-                        display: flex;
-                        flex-direction: column;
-                        border: 1px solid #5a4e70;
-                    }
-                    .message {
-                        margin-bottom: 10px;
-                        max-width: 85%;
-                        word-wrap: break-word;
-                        position: relative;
-                        display: flex;
-                    }
-                    .message-content {
-                        padding: 8px 12px;
-                        border-radius: 5px;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-                    }
-                    .bot-message {g
-                        align-self: flex-start;
-                        flex-direction: row;
-                    }
-                    .bot-icon {
-                        width: 70px;
-                        height: 70px;
-                        background-image: url("/static/output-onlinepngtools1.png");
-                        background-size: cover;
-                        border-radius: 50%;
-                        margin-right: 8px;
-                        flex-shrink: 0;
-                    }
-                    .bot-content {
-                        background-color: #E29AB2;
-                        border: 1px solid black;
-                        color: black;
-                    }
-                    .user-message {
-                        align-self: flex-end;
-                        flex-direction: row-reverse;
-                    }
-                    .user-content {
-                        background-color: #8bd450;
-                        border: 1px solid black;
-                        color: black;
-                    }
-                    .input-area {
-                        display: flex;
-                        padding: 10px;
-                        background: #736488;
-                        border-top: 1px solid #5a4e70;
-                    }
-                    #userInput {
-                        flex: 1;
-                        border: 1px solid #5a4e70;
-                        padding: 8px 12px;
-                        border-radius: 3px;
-                        margin-right: 10px;
-                        font-size: 14px;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        background-color: #8bd450;
-                        color: black;
-                    }
-                    #submitBtn {
-                        background-color: #E29AB2;
-                        color: black;
-                        border: 1px solid #5a4e70;
-                        padding: 8px 15px;
-                        border-radius: 3px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        font-weight: bold;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    }
-                    #submitBtn:hover {
-                        background-color: #d685a0;
-                    }
-                    pre {
-                        background-color: #f5f5f5;
-                        padding: 8px;
-                        border-radius: 3px;
-                        border: 1px solid #ddd;
-                        overflow-x: auto;
-                        white-space: pre-wrap;
-                        font-family: Consolas, monospace;
-                        font-size: 13px;
-                    }
-                    code {
-                        font-family: Consolas, monospace;
-                        background-color: #f5f5f5;
-                        padding: 2px 4px;
-                        border-radius: 3px;
-                        font-size: 13px;
-                    }
-                    .loading {
-                        display: inline-block;
-                        width: 16px;
-                        height: 16px;
-                        border: 3px solid rgba(255, 255, 255, 0.3);
-                        border-radius: 50%;
-                        border-top-color: #fff;
-                        animation: spin 1s ease-in-out infinite;
-                        margin-right: 8px;
-                    }
-                    @keyframes spin {
-                        to { transform: rotate(360deg); }
-                    }
-                    .timestamp {
-                        font-size: 10px;
-                        margin-top: 4px;
-                        text-align: right;
-                        color: #f0f0f0;
-                    }
-                    .thinking {
-                        font-style: italic;
-                        color: #ddd;
-                    }
-                    .status-bar {
-                        padding: 5px 10px;
-                        background-color: #634d7b;
-                        border-top: 1px solid #5a4e70;
-                        font-size: 12px;
-                        color: white;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="chat-container">
-                    <div class="header">
-                        <h2>Adele-Bot</h2>
-                    </div>
-                    
-                    <div id="messages" class="messages-area">
-                        <!-- Messages will be added here -->
-                        <div class="message bot-message">
-                            <div class="bot-icon"></div>
-                            <div class="message-content bot-content">
-                                Stand ready for my arrival, Worm.
-                                <div class="timestamp">Now</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="input-area">
-                        <input type="text" id="userInput" placeholder="Type your message here..." autofocus>
-                        <button id="submitBtn">Send</button>
-                    </div>
-                    
-                    <div class="status-bar" id="statusBar">Ready</div>
-                </div>
-                
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const messagesArea = document.getElementById('messages');
-                        const userInput = document.getElementById('userInput');
-                        const submitBtn = document.getElementById('submitBtn');
-                        const statusBar = document.getElementById('statusBar');
-                        let waitingForResponse = false;
-                        
-                        // Function to update status bar
-                        function updateStatus(text, color = 'white') {
-                            statusBar.textContent = text;
-                            statusBar.style.color = color;
-                        }
-                        
-                        // Function to add a message to the chat
-                        function addMessage(text, isUser = false, isThinking = false) {
-                            const messageDiv = document.createElement('div');
-                            messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
-                            
-                            if (!isUser) {
-                                const botIcon = document.createElement('div');
-                                botIcon.className = 'bot-icon';
-                                messageDiv.appendChild(botIcon);
-                            }
-                            
-                            const contentDiv = document.createElement('div');
-                            contentDiv.className = isUser ? 'message-content user-content' : 'message-content bot-content';
-                            if (isThinking) {
-                                contentDiv.className += ' thinking';
-                            }
-                            
-                            contentDiv.textContent = text;
-                            
-                            // Add timestamp
-                            const timestamp = document.createElement('div');
-                            timestamp.className = 'timestamp';
-                            timestamp.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                            contentDiv.appendChild(timestamp);
-                            
-                            messageDiv.appendChild(contentDiv);
-                            messagesArea.appendChild(messageDiv);
-                            messagesArea.scrollTop = messagesArea.scrollHeight; // Scroll to bottom
-                            return contentDiv; // Return the content div for updating later
-                        }
-                        
-                        // Function to format bot responses (handling code blocks)
-                        function formatBotResponse(element, text) {
-                            // Clear existing content but keep the timestamp
-                            const timestamp = element.querySelector('.timestamp');
-                            element.innerHTML = '';
-                            
-                            // If response contains code blocks
-                            if (text.includes('```')) {
-                                let segments = text.split(/```/g);
-                                for (let i = 0; i < segments.length; i++) {
-                                    if (i % 2 === 0) { // Text segment
-                                        const textNode = document.createTextNode(segments[i]);
-                                        element.appendChild(textNode);
-                                    } else { // Code segment
-                                        const pre = document.createElement('pre');
-                                        pre.textContent = segments[i];
-                                        element.appendChild(pre);
-                                    }
-                                }
-                            } else {
-                                element.textContent = text;
-                            }
-                            
-                            // Re-add the timestamp
-                            element.appendChild(timestamp);
-                        }
-                        
-                        // Function to check for response
-                        function checkForResponse(thinkingMsg) {
-                            fetch('/get_latest_response')
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.has_new && data.message) {
-                                    // Replace the thinking message content with actual response
-                                    thinkingMsg.classList.remove('thinking');
-                                    formatBotResponse(thinkingMsg, data.message);
-                                    waitingForResponse = false;
-                                    updateStatus('Response received', '#8bd450');
-                                } else {
-                                    // Continue polling
-                                    setTimeout(() => checkForResponse(thinkingMsg), 1000);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error checking for messages:', error);
-                                // Update thinking message to show error
-                                thinkingMsg.textContent = "Sorry, there was an error retrieving the response.";
-                                thinkingMsg.classList.remove('thinking');
-                                waitingForResponse = false;
-                                updateStatus('Error retrieving response', '#ff6b6b');
-                            });
-                        }
-                        
-                        // Handle form submission
-                        function handleSubmit() {
-                            const text = userInput.value.trim();
-                            if (!text || waitingForResponse) return;
-                            
-                            // Add user message to chat
-                            addMessage(text, true);
-                            
-                            // Clear input
-                            userInput.value = '';
-                            
-                            // Show loading state
-                            submitBtn.innerHTML = '<span class="loading"></span>';
-                            submitBtn.disabled = true;
-                            waitingForResponse = true;
-                            updateStatus('Processing request...', '#E29AB2');
-                            
-                            // Add thinking indicator that will be replaced later
-                            const thinkingMsg = addMessage("Processing your request...", false, true);
-                            
-                            // Send to backend
-                            fetch('/submit', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ input: text })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.status === 'success') {
-                                    // Poll for the response
-                                    checkForResponse(thinkingMsg);
-                                } else {
-                                    // Update thinking message to show error
-                                    thinkingMsg.textContent = "Sorry, there was an error processing your request.";
-                                    thinkingMsg.classList.remove('thinking');
-                                    waitingForResponse = false;
-                                    updateStatus('Error processing request', '#ff6b6b');
-                                }
-                            })
-                            .catch(error => {
-                                // Update thinking message to show error
-                                thinkingMsg.textContent = "Sorry, there was an error connecting to the server.";
-                                thinkingMsg.classList.remove('thinking');
-                                console.error('Error:', error);
-                                waitingForResponse = false;
-                                updateStatus('Connection error', '#ff6b6b');
-                            })
-                            .finally(() => {
-                                // Reset button state
-                                submitBtn.innerHTML = 'Send';
-                                submitBtn.disabled = false;
-                            });
-                        }
-                        
-                        // Event listeners
-                        submitBtn.addEventListener('click', handleSubmit);
-                        userInput.addEventListener('keypress', function(e) {
-                            if (e.key === 'Enter') {
-                                handleSubmit();
-                            }
-                        });
-                        
-                        // Focus input on load
-                        userInput.focus();
-                    });
-                </script>
-            </body>
-            </html>
-            """)
+            return render_template('webui.html')
+        
+        @app.route('/about')
+        def about():
+            return render_template_string('webui.html')
 
         @self.flask_app.route('/submit', methods=['POST'])
         def submit():
@@ -756,7 +426,7 @@ class GeminiChatApp:
     def add_user_message(self, message):
         """Add a user message bubble to the chat display."""
         message_frame = ttk.Frame(self.messages_frame)
-        message_frame.pack(fill=tk.X, pady=5)
+        message_frame.pack(fill=tk.X, pady=5, padx=10)
 
         # Timestamp label
         timestamp = datetime.now().strftime("%H:%M")
@@ -814,31 +484,25 @@ class GeminiChatApp:
         ttk.Label(timestamp_frame, text=timestamp, font=('Arial', 7), foreground='black', background="#736488").pack(side=tk.BOTTOM)
 
         # Message bubble frame
-        bubble_frame = tk.Frame(message_frame, bg=self.personalities["wis'adel"]["bubble_color"], padx=10, pady=5, 
+        bubble_frame = tk.Frame(message_frame, bg=self.personalities[self.identity]["bubble_color"], padx=10, pady=5, 
                                 highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
         bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
 
-        # Auto-width calculation
-        max_width = 500
-        estimated_width = min(max_width, len(message) * 7)  
-
-        # Use tk.Text for selectable text (but styled like Label)
-        msg_text = tk.Text(bubble_frame, font=("Noto Sans", 15), wrap="word", 
-                        bg=self.personalities["wis'adel"]["bubble_color"], height=1, width=int(estimated_width / 7),
-                        borderwidth=0, highlightthickness=0, relief="flat")
-        msg_text.insert("1.0", message)
-        msg_text.config(state="disabled")  # Make it read-only
-
-        # Auto-adjust height
-        msg_text.update_idletasks()
-        num_lines = int(msg_text.index("end-1c").split(".")[0])
-        msg_text.config(height=num_lines)
-
-        msg_text.pack()
+        # Add message using tk.Label
+        msg_label = tk.Label(
+            bubble_frame,
+            text=message,
+            font=("Noto Sans", 15),
+            wraplength=500,  # Maximum width before wrapping
+            bg=self.personalities[self.identity]["bubble_color"],
+            anchor="w", 
+            justify="left"  # Align text to the left
+        )
+        msg_label.pack()
 
         # Speak button
         action_frame = ttk.Frame(message_frame)
-        action_frame.pack(side=tk.LEFT, anchor="w",padx=10)
+        action_frame.pack(side=tk.LEFT, anchor="w", padx=10)
 
         speak_btn = tk.Button(action_frame, text="🔊", width=2, 
                             command=lambda m=message: self.speak_message(m))
@@ -867,7 +531,7 @@ class GeminiChatApp:
             ttk.Label(timestamp_frame, text=timestamp, font=('Arial', 7), foreground='black', background="#736488").pack(side=tk.BOTTOM)
 
             # Image bubble frame (same as text bubble)
-            bubble_frame = tk.Frame(message_frame, bg=self.personalities["wis'adel"]["bubble_color"], padx=10, pady=5, 
+            bubble_frame = tk.Frame(message_frame, bg=self.personalities[self.identity]["bubble_color"], padx=10, pady=5, 
                                     highlightbackground="black", highlightthickness=1, bd=0, relief="solid")
             bubble_frame.pack(side=tk.LEFT, padx=(5, 5), pady=0, anchor='w')
 
@@ -889,29 +553,41 @@ class GeminiChatApp:
         except Exception as e:
             print(f"Error loading image: {e}")
 
+    
+    def called_identity(self, user_input):
 
+        if "reed" in user_input.lower():
+              
+            self.identity = "reed"        
+        elif "wis" in user_input.lower():  # Gunakan `elif` agar hanya satu yang dipilih
+            self.identity = "wis'adel"   
+        else:
+            self.identity = "default"
+
+        filename = self.personalities[self.identity]["rules_file"]    
+        self.rules_content = self.access_file(filename)
+
+        self.bot_icon = Image.open(self.personalities[self.identity]["icon_path"])
+        self.bot_icon = self.bot_icon.resize((70, 70), Image.LANCZOS)  # Resize the image if necessary
+        self.bot_icon = ImageTk.PhotoImage(self.bot_icon)
+
+        return self.identity, self.bot_icon
 
     
     def process_input(self, from_web=False):
+
         """Process the user input and get a response from the Gemini AI."""
         # Get user input
         user_input = self.input_text.get("1.0", tk.END).strip()
-        print(self.identity)
+
+        self.called_identity(user_input)
+        print(f"AI identity [{self.identity}]")  
         
 
         if not user_input:
             self.status_var.set("Please enter some input")
-            return
-        
-        if "reed" in user_input.lower():
-            
-            self.identity = "reed"
-            print(self.identity)
-
-        elif "wis'adel" in user_input.lower():  # Gunakan `elif` agar hanya satu yang dipilih
-
-            self.identity = "wis'adel"
-            print(self.identity)   
+            return 
+         
              
         if "stop" in user_input.lower():
             self.status_var.set("End program command received")
@@ -945,27 +621,48 @@ class GeminiChatApp:
             return
         
         if "generate" in user_input.lower():
+            
+            print(self.launchcounter)
+            if self.launchcounter == 0:
+                os.system(r'start "" "C:\\Users\\matth\\OneDrive\\Desktop\\Stable Diffusion.lnk"')
+                self.launchcounter += 1  # Update x locally
+                
+
             self.add_user_message(user_input)
             user_input = user_input.replace("generate", "").strip()
+            print(user_input)
             
             image_path = "C:\\Altair\\codes\\python\\tesapi\\output.png"
+            destination_path = "C:\\Altair\\codes\\python\\tesapi\\static\\images\\generated.png"
 
             def generate_and_display():
-                aigenerator.generate_and_save_image(user_input, image_path)
+                aigenerator.generate_and_save_image(user_input, image_path, lora_models)
                 self.add_bot_image(image_path)
                 print("Image generated")
 
-            # Run the function in a new thread
-            thread = threading.Thread(target=generate_and_display)
-            thread.start()
 
-            # Clear input
+            shutil.copy(image_path, destination_path)
+            # Run the function in a new thread
+            #thread = threading.Thread(target=generate_and_display)
+            #thread.start()
+            generate_and_display()
+
+            shutil.copy(image_path, destination_path)
+            self.add_bot_image(image_path)
+            
+            if from_web:
+                self.latest_web_response = message
+                self.has_new_response = True
+                self.waiting_for_response = False
+
+
+            #Clear input
             self.input_text.delete("1.0", tk.END)
-            return
+            
+            return self.launchcounter
             
 
          
-
         # Add user message to chat
         self.add_user_message(user_input)
     
@@ -1000,52 +697,104 @@ class GeminiChatApp:
             args=(user_input, typing_frame, from_web),
             daemon=True
         ).start()
+
+        return self.identity
+    
+    def cache_response(self, user_input, response, mode):
+        """
+        Handles caching and retrieval of chatbot responses.
+
+        mode 1: Append user input + bot response.
+        mode 2: Retrieve the last saved response.
+        """
+
+        if mode == 1:
+            if user_input is None or response is None:
+                raise ValueError("user_input and response must be provided in mode 1")
+
+            # Append chat history instead of overwriting
+            
+            chat_entry = f"\n- User: {user_input}\n- LLM: {response.text}"
+
+            with open(self.cache_file, "a") as file:  # "a" appends instead of overwriting
+                file.write(chat_entry)
+
+            return "Response cached."
+
+        elif mode == 2:
+            try:
+                with open(self.cache_file, "r") as file:
+                    previous_response = file.read()
+                return previous_response
+            except FileNotFoundError:
+                return "No previous response found."
+
+        else:
+            return "Invalid mode."
+    
     
     def get_ai_response(self, user_input, typing_frame, from_web=False):
-        """Get response from Gemini AI in a separate thread."""
+        """Get response from Gemini AI in a separate thread with previous chat context."""
         try:
+            # Retrieve last saved conversation from cache (mode=2)
+            previous_conversation = self.cache_response(None, None, mode=2)
+
+            # If there's no previous conversation, just use user input
+            full_prompt = self.rules_content + previous_conversation + "\nCurret chat (Focus to this):\n-User: " + user_input
+            print ("-==========================\n",full_prompt,"\n======================================\n")
+            # Call AI model with previous context + new input
             response = self.client.models.generate_content(
-                model="gemini-2.0-flash-lite", contents=self.rules_content + user_input
+                model="gemini-2.0-flash-lite", contents=full_prompt
             )
 
-            # Automatic tts
-            threading.Thread(target=self.speak_message, args=(response.text,), daemon=True).start()
-            
-            print(user_input)
-            
-            
+            # Handle cases where response is missing
+            ai_text = response.text.strip() if response and hasattr(response, "text") else "Error: No valid response from AI."
+
+            # Store response in cache
+            self.cache_response(user_input, response, mode=1)
+
+            # Automatic text-to-speech
+            threading.Thread(target=self.speak_message, args=(ai_text,), daemon=True).start()
+
+            #print(f"User: {user_input}")
+            #print(f"Bot: {ai_text}")
+
             # Destroy the "typing" indicator
             self.root.after(0, typing_frame.destroy)
-            
-            # Update the chat with the response
-            self.root.after(0, lambda: self.add_bot_message(response.text))
+
+            # Update the chat UI
+            self.root.after(0, lambda: self.add_bot_message(ai_text))
             self.root.after(0, lambda: self.status_var.set("Response received"))
             self.root.after(0, lambda: self.submit_button.config(state="normal"))
-            
-            print(response.text)
-            
-            
-            # If this was called from the web interface, store the response
+
+            # If called from web, store response
             if from_web:
-                self.latest_web_response = response.text
+                self.latest_web_response = ai_text
                 self.has_new_response = True
                 self.waiting_for_response = False
-            
+
         except Exception as e:
-            # Destroy the "typing" indicator
+            # Destroy typing indicator
             self.root.after(0, typing_frame.destroy)
-            
-            # Show error message
+
+            # Error message
             error_msg = f"Sorry, I encountered an error: {str(e)}"
+            print(error_msg)
+
             self.root.after(0, lambda: self.add_bot_message(error_msg))
             self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
             self.root.after(0, lambda: self.submit_button.config(state="normal"))
-            
-            # If this was called from the web interface, store the error
+
+            # If called from web, store error
             if from_web:
                 self.latest_web_response = error_msg
                 self.has_new_response = True
                 self.waiting_for_response = False
+
+            # Log errors for debugging
+            with open("error_log.txt", "a") as err_file:
+                err_file.write(f"Error: {str(e)}\n")
+
 
     def speak_message(self, message):
         """Convert a specific message to speech and play it."""
@@ -1092,6 +841,7 @@ class GeminiChatApp:
         
         # Add welcome message
         self.add_bot_message("Chat history cleared. How can I help you?")
+        
     
     def save_chat_history(self):
         """Save the chat history to a text file."""

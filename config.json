@@ -1,0 +1,28 @@
+{
+    "api_key": "YOUR_API_KEY_HERE",
+    "default_personality": "default",
+    "personalities": {
+        "default": {
+            "name": "Adele",
+            "rules_file": "rules\\rules.txt",
+            "icon_file": "icon\\output-onlinepngtools.png",
+            "bubble_color": "#E29AB2",
+            "web_icon_url": "/static/images/default_web_icon.png"
+        },
+        "reed": {
+            "name": "Reed",
+            "rules_file": "rules\\rules1.txt",
+            "icon_file": "icon\\arknights-reed.png",
+            "bubble_color": "#EBC072",
+            "web_icon_url": "/static/images/reed_web_icon.png"
+        },
+        "wis'adel": {
+            "name": "Wis",
+            "rules_file": "rules\\rules2.txt",
+            "icon_file": "icon\\output-onlinepngtools1.png",
+            "bubble_color": "#B43231",
+            "web_icon_url": "/static/images/wis_web_icon.png"
+        }
+    },
+    "stable_diffusion_shortcut": "C:\\Users\\matth\\OneDrive\\Desktop\\Stable Diffusion.lnk"
+}
