@@ -1,13 +1,6 @@
 Previous chat (Memory):
+- User: hei
+- LLM: Hei! How can I help you today?
 
-- User: Adele, Hi
-- LLM: Greetings, Matthew. How may I assist you today? I await your query.
-
-- User: Adele, Explain about transistor
-- LLM: The secrets of the transistor are many, Matthew.  It acts as a switch or amplifier for electronic signals.  This allows for the control of current flow in circuits, enabling complex functions.
-
-- User: explain about newton law
-- LLM: The laws of Newton describe motion, Matthew. They detail the relationships between an object and the forces acting upon it. These laws are fundamental in understanding how objects move.
-
-- User: Adele, Hi
-- LLM: Greetings, Matthew. What knowledge do you seek today? I am prepared to share my understanding.
+- User: nothing
+- LLM: Okay, I understand. Let me know if you need anything in the future!
